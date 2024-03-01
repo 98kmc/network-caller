@@ -59,8 +59,6 @@ dependencies {
     val hiltVersion = "2.50"
     val okHttpVersion = "4.10.0"
 
-    implementation(project(":networking"))
-
     implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
     implementation("androidx.activity:activity-compose:1.8.2")
@@ -83,4 +81,8 @@ dependencies {
 
     // OkHttp
     implementation("com.squareup.okhttp3:logging-interceptor:$okHttpVersion")
+
+    // Network Caller
+    implementation("com.github.98kmc:network-caller:1.0.0")
+
 }

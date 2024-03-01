@@ -1,4 +1,4 @@
-package com.kmc.network_caller.main
+package com.kmc.network_caller
 
 import android.os.Bundle
 import android.util.Log

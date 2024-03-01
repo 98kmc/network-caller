@@ -14,7 +14,7 @@
         android:theme="@style/Theme.Networkcaller"
         tools:targetApi="31">
         <activity
-            android:name=".main.MainActivity"
+            android:name=".MainActivity"
             android:exported="true"
             android:theme="@style/Theme.Networkcaller">
             <intent-filter>
