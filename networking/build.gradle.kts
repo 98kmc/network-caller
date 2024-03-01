@@ -1,6 +1,7 @@
 plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
+    id("maven-publish")
     id("com.google.dagger.hilt.android")
     kotlin("kapt")
 }
@@ -35,6 +36,16 @@ android {
 }
 kapt {
     correctErrorTypes = true
+}
+
+publishing {
+    publications {
+        register<MavenPublication>("release") {
+            afterEvaluate {
+                from(components["release"])
+            }
+        }
+    }
 }
 
 dependencies {
