@@ -97,7 +97,7 @@ object NetworkModule {
     @NetworkingBaseUrl
     @Singleton
     @Provides
-    fun provideBaseUrl(): URL = URL("https://github.com/")  // Your Url here!
+    fun provideBaseUrl(): URL = URL("/")  // Your Url here!
 
     @NetworkingOkHttp
     @Singleton
