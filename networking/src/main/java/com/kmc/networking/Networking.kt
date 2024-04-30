@@ -1,4 +1,4 @@
-@file:Suppress("unused")
+@file:Suppress("unused", "DEPRECATION")
 
 package com.kmc.networking
 
@@ -53,6 +53,7 @@ class Networking @Inject internal constructor(
         service = retrofit.create(ApiService::class.java)
     }
 
+    @Deprecated("Deprecated in v1.1.0")
     inner class DataTask internal constructor(
         val url: URL,
         val method: HttpMethod,
@@ -80,6 +81,7 @@ class Networking @Inject internal constructor(
         }
     }
 
+    @Deprecated("Deprecated in v1.1.0")
     inner class DataTaskBuilder(from: String) {
 
         private val url: URL = buildUrl(str = from)
@@ -155,11 +157,6 @@ class Networking @Inject internal constructor(
 
             return retrofitBuilder.build().create(ApiService::class.java)
         }
-    }
-
-    interface RequestExecutor<T> {
-
-        suspend fun execute(): T?
     }
 
     abstract inner class DataRequest(

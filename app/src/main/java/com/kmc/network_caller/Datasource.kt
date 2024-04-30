@@ -19,8 +19,7 @@ class DataSource @Inject constructor(
     @ApplicationContext private val context: Context
 ) : NetworkCaller {
 
-    private val service = networkingService(context)
-
+    private val service = networkService(context)
 
     suspend fun fetchPost(): PostList? {
 

@@ -8,14 +8,14 @@ interface NetworkingService {
         provideNetworking().Request(from = from, javaClass)
 
     fun <T> NetworkingService.buildSafeRequest(from: String, javaClass: Class<T>) =
-        provideNetworking().SafeRequest<T>(from = from, javaClass)
+        provideNetworking().SafeRequest(from = from, javaClass)
 }
 
-suspend inline fun <reified T> NetworkingService.request(
+inline fun <reified T> NetworkingService.request(
     from: String
 ) = buildRequest(from, T::class.java)
 
-suspend inline fun <reified T> NetworkingService.safeRequest(
+inline fun <reified T> NetworkingService.safeRequest(
     from: String
 ) = buildSafeRequest(from, T::class.java)
 
