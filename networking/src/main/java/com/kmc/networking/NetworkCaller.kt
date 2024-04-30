@@ -9,9 +9,9 @@ import dagger.hilt.components.SingletonComponent
 
 interface NetworkCaller {
 
-    fun NetworkCaller.networkingService(context: Context) = object : NetworkService {
+    fun NetworkCaller.networkingService(context: Context) = object : NetworkingService {
 
-        override fun NetworkService.provideNetworking() =
+        override fun NetworkingService.provideNetworking() =
             EntryPoints.get(context, NetworkingEntryPoint::class.java).networking()
     }
 }

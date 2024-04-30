@@ -2,9 +2,13 @@
 
 package com.kmc.networking
 
+import com.google.gson.Gson
 import com.google.gson.JsonElement
+import com.google.gson.JsonSyntaxException
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.OkHttpClient
 import okhttp3.RequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response as HttpResponse
 import retrofit2.Response
 import retrofit2.Retrofit
@@ -15,6 +19,7 @@ import retrofit2.http.PATCH
 import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Url
+import java.lang.IllegalArgumentException
 import java.net.MalformedURLException
 import java.net.URL
 import javax.inject.Inject
@@ -75,9 +80,7 @@ class Networking @Inject internal constructor(
         }
     }
 
-    inner class DataTaskBuilder(
-        from: String,
-    ) {
+    inner class DataTaskBuilder(from: String) {
 
         private val url: URL = buildUrl(str = from)
         private var method: HttpMethod = HttpMethod.GET
@@ -151,6 +154,167 @@ class Networking @Inject internal constructor(
             }
 
             return retrofitBuilder.build().create(ApiService::class.java)
+        }
+    }
+
+    interface RequestExecutor<T> {
+
+        suspend fun execute() : T?
+    }
+
+    open inner class Request<T>(
+        from: String
+    ) {
+
+        private val url: URL = buildUrl(str = from)
+        private var method: HttpMethod = HttpMethod.GET
+        private var body: RequestBody? = null
+        private var client: OkHttpClient? = null
+        private var headers: Map<String, String>? = null
+
+        fun withMethod(method: HttpMethod): Request<T> {
+            this.method = method
+            return this
+        }
+
+        fun withClient(client: OkHttpClient): Request<T> {
+            this.client = client
+            return this
+        }
+
+        fun withHeaders(headers: Map<String, String>): Request<T> {
+            this.headers = headers
+            return this
+        }
+
+        fun withBody(body: Map<String, Any>): Request<T> {
+            this.body = Gson().toJson(body).toRequestBody("application/json".toMediaTypeOrNull())
+            return this
+        }
+
+        /**
+         * Private Methods
+         */
+        internal suspend fun executeRequest(): Pair<JsonElement?, HttpResponse> {
+
+            if (client != null || headers != null) {
+
+                service = buildService()
+            }
+
+            val url = url.toString()
+
+            val serverResponse = when (method) {
+
+                HttpMethod.GET -> service.get(url)
+
+                HttpMethod.POST -> service.post(url, body)
+
+                HttpMethod.PUT -> service.put(url, body)
+
+                HttpMethod.PATCH -> service.patch(url, body)
+
+                HttpMethod.DELETE -> service.delete(url)
+            }
+
+            return Pair(serverResponse.body(), serverResponse.raw())
+        }
+
+        private fun buildService(): ApiService {
+
+            val retrofitBuilder = retrofit.newBuilder()
+
+            client?.let { retrofitBuilder.client(it) }
+
+            headers?.let {
+
+                val newOkHttpClient = (client ?: retrofit.callFactory() as OkHttpClient)
+                    .newBuilder()
+                    .addInterceptor { chain ->
+                        val originalRequest = chain.request()
+                        val requestBuilder = originalRequest.newBuilder()
+
+                        it.forEach { (key, value) ->
+                            requestBuilder.addHeader(key, value)
+                        }
+
+                        chain.proceed(requestBuilder.build())
+                    }
+                    .build()
+
+                retrofitBuilder.client(newOkHttpClient)
+            }
+
+            return retrofitBuilder.build().create(ApiService::class.java)
+        }
+
+        private fun buildUrl(str: String) = try {
+            URL(str)
+        } catch (e: MalformedURLException) {
+            URL(currentBaseUrl.toString() + str)
+        }
+    }
+
+    inner class DefaultRequest<T>(
+        from: String,
+        private val javaClass: Class<T>
+    ) : Request<T>(from), RequestExecutor<T> {
+
+        override suspend fun execute(): T? {
+
+            val (data, response) = executeRequest()
+
+            return if (response.isSuccessful && response.body != null) Gson().fromJson(data, javaClass)
+            else null
+
+        }
+    }
+
+    inner class SafeRequest<T>(
+        from: String,
+        private val javaClass: Class<T>
+    ) : Request<T>(from), RequestExecutor<Result<T>> {
+
+        override suspend fun execute(): Result<T> {
+
+            return try {
+
+                val (data, response) = executeRequest()
+
+                when {
+                    !response.isSuccessful -> Result.failure(
+                        when (response.code) {
+                            401 -> NetworkError.StatusCode(response.code, "UnauthorizedUnauthorized")
+                            404 -> NetworkError.StatusCode(response.code, "Not Found")
+                            500 -> NetworkError.StatusCode(response.code, "Internal Server Error")
+                            // Add more status code validations if needed
+                            else -> NetworkError.StatusCode(
+                                response.code,
+                                "Unknown Error: " + response.message
+                            )
+                        }
+                    )
+
+                    response.body == null -> Result.failure(
+                        NetworkError.APIError(
+                            error = "Error: Body expected but found null instead " + response.message
+                        )
+                    )
+
+                    else -> Result.success(
+                        Gson().fromJson(data, javaClass)
+                    )
+                }
+            } catch (e: Throwable) {
+
+                when (e) {
+                    is MalformedURLException,
+                    is IllegalArgumentException -> Result.failure(NetworkError.UrlConstructError(e.message))
+                    is ClassCastException,
+                    is JsonSyntaxException -> Result.failure(NetworkError.DecodingError(e.message))
+                    else -> Result.failure(NetworkError.APIError(e.message))
+                }
+            }
         }
     }
 }
