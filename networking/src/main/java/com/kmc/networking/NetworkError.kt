@@ -1,4 +1,4 @@
-package com.kmc.networking.entity
+package com.kmc.networking
 
 sealed class NetworkError : Error() {
     data class UrlConstructError(val msg: String? = null) : NetworkError()

@@ -1,18 +1,13 @@
 @file:Suppress("unused")
+
 package com.kmc.networking
 
 import com.google.gson.JsonElement
-import com.kmc.networking.entity.HttpMethod
-import dagger.Module
-import dagger.Provides
-import dagger.hilt.InstallIn
-import dagger.hilt.components.SingletonComponent
 import okhttp3.OkHttpClient
 import okhttp3.RequestBody
 import okhttp3.Response as HttpResponse
 import retrofit2.Response
 import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
@@ -23,7 +18,6 @@ import retrofit2.http.Url
 import java.net.MalformedURLException
 import java.net.URL
 import javax.inject.Inject
-import javax.inject.Singleton
 
 class Networking @Inject internal constructor(
     @NetworkingRetrofit private val retrofit: Retrofit
@@ -47,7 +41,12 @@ class Networking @Inject internal constructor(
         suspend fun delete(@Url url: String): Response<JsonElement>
     }
 
-    private lateinit var service: ApiService
+    private var service: ApiService
+    private val currentBaseUrl get() = retrofit.baseUrl()
+
+    init {
+        service = retrofit.create(ApiService::class.java)
+    }
 
     inner class DataTask internal constructor(
         val url: URL,
@@ -61,15 +60,15 @@ class Networking @Inject internal constructor(
 
             val serverResponse = when (method) {
 
-                HttpMethod.Get -> service.get(url)
+                HttpMethod.GET -> service.get(url)
 
-                HttpMethod.Post -> service.post(url, body)
+                HttpMethod.POST -> service.post(url, body)
 
-                HttpMethod.Put -> service.put(url, body)
+                HttpMethod.PUT -> service.put(url, body)
 
-                HttpMethod.Patch -> service.patch(url, body)
+                HttpMethod.PATCH -> service.patch(url, body)
 
-                HttpMethod.Delete -> service.delete(url)
+                HttpMethod.DELETE -> service.delete(url)
             }
 
             return Pair(serverResponse.body(), serverResponse.raw())
@@ -81,14 +80,17 @@ class Networking @Inject internal constructor(
     ) {
 
         private val url: URL = buildUrl(str = from)
-        private var method: HttpMethod = HttpMethod.Get
+        private var method: HttpMethod = HttpMethod.GET
         private var body: RequestBody? = null
         private var client: OkHttpClient? = null
         private var headers: Map<String, String>? = null
 
         fun build(): DataTask {
 
-            service = buildService()
+            if (client != null || headers != null) {
+
+                service = buildService()
+            }
 
             return DataTask(
                 url = url,
@@ -120,12 +122,12 @@ class Networking @Inject internal constructor(
         private fun buildUrl(str: String) = try {
             URL(str)
         } catch (e: MalformedURLException) {
-            URL(retrofit.baseUrl().toString() + str)
+            URL(currentBaseUrl.toString() + str)
         }
 
         private fun buildService(): ApiService {
 
-            val retrofitBuilder = retrofit.newBuilder().baseUrl(url)
+            val retrofitBuilder = retrofit.newBuilder()
 
             client?.let { retrofitBuilder.client(it) }
 
@@ -153,26 +155,3 @@ class Networking @Inject internal constructor(
     }
 }
 
-@Module
-@InstallIn(SingletonComponent::class)
-internal object NetworkingHiltModule {
-
-    @NetworkingRetrofit
-    @Singleton
-    @Provides
-    fun provideRetrofit(
-        @NetworkingBaseUrl url: URL,
-        @NetworkingOkHttp client: OkHttpClient
-    ): Retrofit = Retrofit.Builder()
-        .baseUrl(url)
-        .addConverterFactory(GsonConverterFactory.create())
-        .client(client)
-        .build()
-
-    @Singleton
-    @Provides
-    fun provideNetworking(@NetworkingRetrofit retrofit: Retrofit): Networking {
-
-        return Networking(retrofit)
-    }
-}

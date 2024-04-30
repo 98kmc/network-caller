@@ -1,8 +1,7 @@
 @file:Suppress("unused")
-package com.kmc.networking.interfaces
+package com.kmc.networking
 
 import android.content.Context
-import com.kmc.networking.Networking
 import dagger.hilt.EntryPoint
 import dagger.hilt.EntryPoints
 import dagger.hilt.InstallIn

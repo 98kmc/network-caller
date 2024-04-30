@@ -1,11 +1,8 @@
 @file:Suppress("unused")
-package com.kmc.networking.interfaces
+package com.kmc.networking
 
 import com.google.gson.Gson
 import com.google.gson.JsonSyntaxException
-import com.kmc.networking.Networking
-import com.kmc.networking.entity.HttpMethod
-import com.kmc.networking.entity.NetworkError
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.OkHttpClient
 import okhttp3.RequestBody.Companion.toRequestBody

@@ -1,9 +1,5 @@
 package com.kmc.networking
 
-import com.kmc.networking.entity.NetworkError
-import com.kmc.networking.interfaces.NetworkService
-import com.kmc.networking.interfaces.request
-import com.kmc.networking.interfaces.safeRequest
 import kotlinx.coroutines.test.runTest
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
