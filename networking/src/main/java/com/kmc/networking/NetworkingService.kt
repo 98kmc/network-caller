@@ -5,7 +5,7 @@ interface NetworkingService {
     fun NetworkingService.provideNetworking(): Networking
 
     fun <T> NetworkingService.buildRequest(from: String, javaClass: Class<T>) =
-        provideNetworking().DefaultRequest(from = from, javaClass)
+        provideNetworking().Request(from = from, javaClass)
 
     fun <T> NetworkingService.buildSafeRequest(from: String, javaClass: Class<T>) =
         provideNetworking().SafeRequest<T>(from = from, javaClass)

@@ -159,10 +159,10 @@ class Networking @Inject internal constructor(
 
     interface RequestExecutor<T> {
 
-        suspend fun execute() : T?
+        suspend fun execute(): T?
     }
 
-    open inner class Request<T>(
+    abstract inner class DataRequest(
         from: String
     ) {
 
@@ -172,22 +172,22 @@ class Networking @Inject internal constructor(
         private var client: OkHttpClient? = null
         private var headers: Map<String, String>? = null
 
-        fun withMethod(method: HttpMethod): Request<T> {
+        open fun withMethod(method: HttpMethod): DataRequest {
             this.method = method
             return this
         }
 
-        fun withClient(client: OkHttpClient): Request<T> {
+        open fun withClient(client: OkHttpClient): DataRequest {
             this.client = client
             return this
         }
 
-        fun withHeaders(headers: Map<String, String>): Request<T> {
+        open fun withHeaders(headers: Map<String, String>): DataRequest {
             this.headers = headers
             return this
         }
 
-        fun withBody(body: Map<String, Any>): Request<T> {
+        open fun withBody(body: Map<String, Any>): DataRequest {
             this.body = Gson().toJson(body).toRequestBody("application/json".toMediaTypeOrNull())
             return this
         }
@@ -255,16 +255,39 @@ class Networking @Inject internal constructor(
         }
     }
 
-    inner class DefaultRequest<T>(
+    inner class Request<T>(
         from: String,
         private val javaClass: Class<T>
-    ) : Request<T>(from), RequestExecutor<T> {
+    ) : DataRequest(from), RequestExecutor<T> {
+
+        override fun withMethod(method: HttpMethod): Request<T> {
+            super.withMethod(method)
+            return this
+        }
+
+        override fun withClient(client: OkHttpClient): Request<T> {
+            super.withClient(client)
+            return this
+        }
+
+        override fun withHeaders(headers: Map<String, String>): Request<T> {
+            super.withHeaders(headers)
+            return this
+        }
+
+        override fun withBody(body: Map<String, Any>): Request<T> {
+            super.withBody(body)
+            return this
+        }
 
         override suspend fun execute(): T? {
 
             val (data, response) = executeRequest()
 
-            return if (response.isSuccessful && response.body != null) Gson().fromJson(data, javaClass)
+            return if (response.isSuccessful && response.body != null) Gson().fromJson(
+                data,
+                javaClass
+            )
             else null
 
         }
@@ -273,7 +296,27 @@ class Networking @Inject internal constructor(
     inner class SafeRequest<T>(
         from: String,
         private val javaClass: Class<T>
-    ) : Request<T>(from), RequestExecutor<Result<T>> {
+    ) : DataRequest(from), RequestExecutor<Result<T>> {
+
+        override fun withMethod(method: HttpMethod): SafeRequest<T> {
+            super.withMethod(method)
+            return this
+        }
+
+        override fun withClient(client: OkHttpClient): SafeRequest<T> {
+            super.withClient(client)
+            return this
+        }
+
+        override fun withHeaders(headers: Map<String, String>): SafeRequest<T> {
+            super.withHeaders(headers)
+            return this
+        }
+
+        override fun withBody(body: Map<String, Any>): SafeRequest<T> {
+            super.withBody(body)
+            return this
+        }
 
         override suspend fun execute(): Result<T> {
 
@@ -284,7 +327,11 @@ class Networking @Inject internal constructor(
                 when {
                     !response.isSuccessful -> Result.failure(
                         when (response.code) {
-                            401 -> NetworkError.StatusCode(response.code, "UnauthorizedUnauthorized")
+                            401 -> NetworkError.StatusCode(
+                                response.code,
+                                "UnauthorizedUnauthorized"
+                            )
+
                             404 -> NetworkError.StatusCode(response.code, "Not Found")
                             500 -> NetworkError.StatusCode(response.code, "Internal Server Error")
                             // Add more status code validations if needed
@@ -310,8 +357,10 @@ class Networking @Inject internal constructor(
                 when (e) {
                     is MalformedURLException,
                     is IllegalArgumentException -> Result.failure(NetworkError.UrlConstructError(e.message))
+
                     is ClassCastException,
                     is JsonSyntaxException -> Result.failure(NetworkError.DecodingError(e.message))
+
                     else -> Result.failure(NetworkError.APIError(e.message))
                 }
             }
