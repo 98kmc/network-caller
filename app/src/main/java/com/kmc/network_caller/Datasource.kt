@@ -13,24 +13,29 @@ data class AnyDataType(
     val title: String?
 )
 
+private typealias PostList = List<AnyDataType>
+
 class DataSource @Inject constructor(
     @ApplicationContext private val context: Context
 ) : NetworkCaller {
 
     private val service = networkingService(context)
 
-    suspend fun fetchPost(): List<AnyDataType>? = service.request(endpoint = "posts/")
+    suspend fun fetchPost(): PostList? = service.request(endpoint = "posts/")
 
-    suspend fun createPost(): Result<AnyDataType> = service.safeRequest(
-        endpoint = "https://jsonplaceholder.typicode.com/posts/",
-        method = HttpMethod.Post,
-        withBody = mapOf(
-            "title"  to "foo",
-            "body"   to "bar",
-            "userId" to "1"
-        ),
-        withHeaders = mapOf(
-            "Content-type" to "application/json; charset=UTF-8"
+    suspend fun createPost(): Result<AnyDataType> {
+
+        return service.safeRequest(
+            endpoint = "posts/",
+            method = HttpMethod.Post,
+            withBody = mapOf(
+                "title" to "foo",
+                "body" to "bar",
+                "userId" to "1"
+            ),
+            withHeaders = mapOf(
+                "Content-type" to "application/json; charset=UTF-8"
+            )
         )
-    )
+    }
 }

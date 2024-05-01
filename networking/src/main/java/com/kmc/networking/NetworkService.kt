@@ -1,11 +1,8 @@
 @file:Suppress("unused")
-package com.kmc.networking.interfaces
+package com.kmc.networking
 
 import com.google.gson.Gson
 import com.google.gson.JsonSyntaxException
-import com.kmc.networking.Networking
-import com.kmc.networking.entity.HttpMethod
-import com.kmc.networking.entity.NetworkError
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.OkHttpClient
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -17,6 +14,10 @@ interface NetworkService {
     fun NetworkService.provideNetworking(): Networking
 }
 
+@Deprecated(
+    "Deprecated in v1.1.0",
+    ReplaceWith(expression = "NetworkingService.request(from = www.yourApi.com/).execute()")
+)
 suspend inline fun <reified T> NetworkService.request(
     endpoint: String,
     method: HttpMethod? = null,
@@ -40,6 +41,10 @@ suspend inline fun <reified T> NetworkService.request(
     else null
 }
 
+@Deprecated(
+    "Deprecated in v1.1.0",
+    ReplaceWith(expression = "NetworkingService.safeRequest(from = www.yourApi.com/).execute()")
+)
 suspend inline fun <reified T> NetworkService.safeRequest(
     endpoint: String,
     method: HttpMethod? = null,

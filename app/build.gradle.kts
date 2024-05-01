@@ -84,5 +84,4 @@ dependencies {
 
     // Network Caller
     implementation("com.github.98kmc:network-caller:1.0.0")
-
 }
