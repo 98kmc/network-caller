@@ -1,10 +1,10 @@
 package com.kmc.network_caller
 
 import android.content.Context
-import com.kmc.networking.entity.HttpMethod
-import com.kmc.networking.interfaces.NetworkCaller
-import com.kmc.networking.interfaces.request
-import com.kmc.networking.interfaces.safeRequest
+import com.kmc.networking.HttpMethod
+import com.kmc.networking.NetworkCaller
+import com.kmc.networking.request
+import com.kmc.networking.safeRequest
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 
@@ -21,21 +21,25 @@ class DataSource @Inject constructor(
 
     private val service = networkingService(context)
 
-    suspend fun fetchPost(): PostList? = service.request(endpoint = "posts/")
+    suspend fun fetchPost(): PostList? = service.request(endpoint = "posts/").execute()
 
     suspend fun createPost(): Result<AnyDataType> {
 
-        return service.safeRequest(
-            endpoint = "posts/",
-            method = HttpMethod.Post,
-            withBody = mapOf(
-                "title" to "foo",
-                "body" to "bar",
-                "userId" to "1"
-            ),
-            withHeaders = mapOf(
-                "Content-type" to "application/json; charset=UTF-8"
+        val request = service.safeRequest(endpoint = "posts/")
+            .withMethod(HttpMethod.POST)
+            .withBody(
+                mapOf(
+                    "title" to "foo",
+                    "body" to "bar",
+                    "userId" to "1"
+                )
             )
-        )
+            .withHeaders(
+                mapOf(
+                    "Content-type" to "application/json; charset=UTF-8"
+                )
+            )
+
+        return request.execute()
     }
 }

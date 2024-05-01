@@ -168,10 +168,7 @@ class Networking @Inject internal constructor(
                 when {
                     !response.isSuccessful -> Result.failure(
                         when (response.code) {
-                            401 -> NetworkError.StatusCode(
-                                response.code, "UnauthorizedUnauthorized"
-                            )
-
+                            401 -> NetworkError.StatusCode(response.code, "UnauthorizedUnauthorized")
                             404 -> NetworkError.StatusCode(response.code, "Not Found")
                             500 -> NetworkError.StatusCode(response.code, "Internal Server Error")
                             // Add more status code validations if needed
@@ -244,6 +241,7 @@ class Networking @Inject internal constructor(
         return retrofitBuilder.build().create(ApiService::class.java)
     }
 
+    @Deprecated("Deprecated in v1.1.0")
     inner class DataTask internal constructor(
         val url: URL,
         val method: HttpMethod,
@@ -271,6 +269,7 @@ class Networking @Inject internal constructor(
         }
     }
 
+    @Deprecated("Deprecated in v1.1.0")
     inner class DataTaskBuilder(from: String) {
 
         private val url: URL = buildUrl(str = from)
