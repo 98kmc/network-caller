@@ -12,11 +12,11 @@ The `network-caller` library is an open-source project, which means we welcome c
 
 **Networking Class:** Centralizes network operations, supporting common HTTP methods such as GET, POST, PUT, PATCH, and DELETE.
 
-**DataTask Builder:** Offers a fluent API for constructing network tasks with flexible options, including custom HTTP methods, request bodies, headers, and OkHttpClient customization.
+**DataRequest Builder:** Offers a fluent API for constructing network request with flexible options, including custom HTTP methods, request bodies, headers, and OkHttpClient customization.
 
-**NetworkCaller & NetworkService Interfaces:** Abstractions to simplify the integration of the library into your Android project.
+**NetworkCaller & NetworkingService Interfaces:** Abstractions to simplify the integration of the library into your Android project.
 
-**Request Functions:** Convenient inline functions (`request` and `safeRequest`) for making network requests and handling responses with ease. Includes support for specifying HTTP methods, request bodies, headers, and custom OkHttpClient instances.
+**Request Functions:** Convenient functions (`request` and `safeRequest`) for making network requests and handling responses with ease. Includes support for specifying HTTP methods, request bodies, headers, and custom OkHttpClient instances.
 
 **Error Handling:** Comprehensive error handling for various scenarios, such as HTTP status code validation, null response bodies, and exceptions during network operations.
 
@@ -132,22 +132,29 @@ Implement the `NetworkCaller` interface, which gives you access to the `networki
     @ApplicationContext private val context: Context
    ) : NetworkCaller {
 
-     private val service = networkingService(context)
+        private val service = networkingService(context)
 
-     suspend fun fetchPost(): List<AnyDataType>? = service.request(endpoint = "posts/")
+        suspend fun fetchPost(): PostList? = service.request(endpoint = "posts/").execute()
 
-     suspend fun createPost(): Result<AnyDataType> = service.safeRequest(
-        endpoint = "https://jsonplaceholder.typicode.com/posts/",
-        method = HttpMethod.Post,
-        withBody = mapOf(
-            "title"  to "foo",
-            "body"   to "bar",
-            "userId" to "1"
-        ),
-        withHeaders = mapOf(
-            "Content-type" to "application/json; charset=UTF-8"
-        )
-     )
+        suspend fun createPost(): Result<AnyDataType> {
+    
+            val request = service.safeRequest(endpoint = "posts/")
+                .withMethod(HttpMethod.POST)
+                .withBody(
+                    mapOf(
+                        "title" to "foo",
+                        "body" to "bar",
+                        "userId" to "1"
+                    )
+                )
+                .withHeaders(
+                    mapOf(
+                        "Content-type" to "application/json; charset=UTF-8"
+                    )
+                )
+
+            return request.execute()
+        }
   }
    ```
 Note: On this functions there is no difference between using the full URL or just the endpoint. If only the endpoint is provided, the `@NetworkingBaseUrl` is used to complete the URL.
