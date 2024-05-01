@@ -53,6 +53,203 @@ class Networking @Inject internal constructor(
         service = retrofit.create(ApiService::class.java)
     }
 
+    abstract inner class DataRequest(from: String) {
+
+        private val url: URL = buildUrl(str = from)
+        private var method: HttpMethod = HttpMethod.GET
+        private var body: RequestBody? = null
+        private var client: OkHttpClient? = null
+        private var headers: Map<String, String>? = null
+
+        open fun withMethod(method: HttpMethod): DataRequest {
+            this.method = method
+            return this
+        }
+
+        open fun withClient(client: OkHttpClient): DataRequest {
+            this.client = client
+            return this
+        }
+
+        open fun withHeaders(headers: Map<String, String>): DataRequest {
+            this.headers = headers
+            return this
+        }
+
+        open fun withBody(body: Map<String, Any>): DataRequest {
+            this.body = Gson().toJson(body).toRequestBody("application/json".toMediaTypeOrNull())
+            return this
+        }
+
+        internal suspend fun getServiceResponse(): Pair<JsonElement?, HttpResponse> {
+
+            if (client != null || headers != null) {
+
+                service = buildService()
+            }
+
+            val url = url.toString()
+
+            val serverResponse = when (method) {
+
+                HttpMethod.GET -> service.get(url)
+
+                HttpMethod.POST -> service.post(url, body)
+
+                HttpMethod.PUT -> service.put(url, body)
+
+                HttpMethod.PATCH -> service.patch(url, body)
+
+                HttpMethod.DELETE -> service.delete(url)
+            }
+
+            return Pair(serverResponse.body(), serverResponse.raw())
+        }
+
+        private fun buildService(): ApiService {
+
+            val retrofitBuilder = retrofit.newBuilder()
+
+            client?.let { retrofitBuilder.client(it) }
+
+            headers?.let {
+
+                val newOkHttpClient = (client ?: retrofit.callFactory() as OkHttpClient)
+                    .newBuilder()
+                    .addInterceptor { chain ->
+                        val originalRequest = chain.request()
+                        val requestBuilder = originalRequest.newBuilder()
+
+                        it.forEach { (key, value) ->
+                            requestBuilder.addHeader(key, value)
+                        }
+
+                        chain.proceed(requestBuilder.build())
+                    }
+                    .build()
+
+                retrofitBuilder.client(newOkHttpClient)
+            }
+
+            return retrofitBuilder.build().create(ApiService::class.java)
+        }
+
+        private fun buildUrl(str: String) = try {
+            URL(str)
+        } catch (e: MalformedURLException) {
+            URL(currentBaseUrl.toString() + str)
+        }
+    }
+
+    inner class Request(
+        from: String,
+    ) : DataRequest(from), RequestExecutor {
+
+        override fun withMethod(method: HttpMethod): Request {
+            super.withMethod(method)
+            return this
+        }
+
+        override fun withClient(client: OkHttpClient): Request {
+            super.withClient(client)
+            return this
+        }
+
+        override fun withHeaders(headers: Map<String, String>): Request {
+            super.withHeaders(headers)
+            return this
+        }
+
+        override fun withBody(body: Map<String, Any>): Request {
+            super.withBody(body)
+            return this
+        }
+
+
+        suspend inline fun <reified T> execute(): T? {
+
+            val (data, response) = executeRequest(this)
+
+            return if (response.isSuccessful && response.body != null) Gson().fromJson(
+                data,
+                T::class.java
+            ) else null
+        }
+    }
+
+    inner class SafeRequest(
+        from: String,
+    ) : DataRequest(from), RequestExecutor {
+
+        override fun withMethod(method: HttpMethod): SafeRequest {
+            super.withMethod(method)
+            return this
+        }
+
+        override fun withClient(client: OkHttpClient): SafeRequest {
+            super.withClient(client)
+            return this
+        }
+
+        override fun withHeaders(headers: Map<String, String>): SafeRequest {
+            super.withHeaders(headers)
+            return this
+        }
+
+        override fun withBody(body: Map<String, Any>): SafeRequest {
+            super.withBody(body)
+            return this
+        }
+
+        suspend inline fun <reified T>execute(): Result<T> {
+
+            return try {
+
+                val (data, response) = executeRequest(this)
+
+                when {
+                    !response.isSuccessful -> Result.failure(
+                        when (response.code) {
+                            401 -> NetworkError.StatusCode(
+                                response.code,
+                                "UnauthorizedUnauthorized"
+                            )
+
+                            404 -> NetworkError.StatusCode(response.code, "Not Found")
+                            500 -> NetworkError.StatusCode(response.code, "Internal Server Error")
+                            // Add more status code validations if needed
+                            else -> NetworkError.StatusCode(
+                                response.code,
+                                "Unknown Error: " + response.message
+                            )
+                        }
+                    )
+
+                    response.body == null -> Result.failure(
+                        NetworkError.APIError(
+                            error = "Error: Body expected but found null instead " + response.message
+                        )
+                    )
+
+                    else -> Result.success(
+                        Gson().fromJson(data, T::class.java)
+                    )
+                }
+            } catch (e: Throwable) {
+
+                when (e) {
+                    is MalformedURLException,
+                    is IllegalArgumentException -> Result.failure(NetworkError.UrlConstructError(e.message))
+
+                    is ClassCastException,
+                    is JsonSyntaxException -> Result.failure(NetworkError.DecodingError(e.message))
+
+                    else -> Result.failure(NetworkError.APIError(e.message))
+                }
+            }
+        }
+    }
+
     @Deprecated("Deprecated in v1.1.0")
     inner class DataTask internal constructor(
         val url: URL,
@@ -156,211 +353,6 @@ class Networking @Inject internal constructor(
             }
 
             return retrofitBuilder.build().create(ApiService::class.java)
-        }
-    }
-
-    abstract inner class DataRequest(
-        from: String
-    ) {
-
-        private val url: URL = buildUrl(str = from)
-        private var method: HttpMethod = HttpMethod.GET
-        private var body: RequestBody? = null
-        private var client: OkHttpClient? = null
-        private var headers: Map<String, String>? = null
-
-        open fun withMethod(method: HttpMethod): DataRequest {
-            this.method = method
-            return this
-        }
-
-        open fun withClient(client: OkHttpClient): DataRequest {
-            this.client = client
-            return this
-        }
-
-        open fun withHeaders(headers: Map<String, String>): DataRequest {
-            this.headers = headers
-            return this
-        }
-
-        open fun withBody(body: Map<String, Any>): DataRequest {
-            this.body = Gson().toJson(body).toRequestBody("application/json".toMediaTypeOrNull())
-            return this
-        }
-
-        /**
-         * Private Methods
-         */
-        internal suspend fun executeRequest(): Pair<JsonElement?, HttpResponse> {
-
-            if (client != null || headers != null) {
-
-                service = buildService()
-            }
-
-            val url = url.toString()
-
-            val serverResponse = when (method) {
-
-                HttpMethod.GET -> service.get(url)
-
-                HttpMethod.POST -> service.post(url, body)
-
-                HttpMethod.PUT -> service.put(url, body)
-
-                HttpMethod.PATCH -> service.patch(url, body)
-
-                HttpMethod.DELETE -> service.delete(url)
-            }
-
-            return Pair(serverResponse.body(), serverResponse.raw())
-        }
-
-        private fun buildService(): ApiService {
-
-            val retrofitBuilder = retrofit.newBuilder()
-
-            client?.let { retrofitBuilder.client(it) }
-
-            headers?.let {
-
-                val newOkHttpClient = (client ?: retrofit.callFactory() as OkHttpClient)
-                    .newBuilder()
-                    .addInterceptor { chain ->
-                        val originalRequest = chain.request()
-                        val requestBuilder = originalRequest.newBuilder()
-
-                        it.forEach { (key, value) ->
-                            requestBuilder.addHeader(key, value)
-                        }
-
-                        chain.proceed(requestBuilder.build())
-                    }
-                    .build()
-
-                retrofitBuilder.client(newOkHttpClient)
-            }
-
-            return retrofitBuilder.build().create(ApiService::class.java)
-        }
-
-        private fun buildUrl(str: String) = try {
-            URL(str)
-        } catch (e: MalformedURLException) {
-            URL(currentBaseUrl.toString() + str)
-        }
-    }
-
-    inner class Request<T>(
-        from: String,
-        private val javaClass: Class<T>
-    ) : DataRequest(from), RequestExecutor<T> {
-
-        override fun withMethod(method: HttpMethod): Request<T> {
-            super.withMethod(method)
-            return this
-        }
-
-        override fun withClient(client: OkHttpClient): Request<T> {
-            super.withClient(client)
-            return this
-        }
-
-        override fun withHeaders(headers: Map<String, String>): Request<T> {
-            super.withHeaders(headers)
-            return this
-        }
-
-        override fun withBody(body: Map<String, Any>): Request<T> {
-            super.withBody(body)
-            return this
-        }
-
-        override suspend fun execute(): T? {
-
-            val (data, response) = executeRequest()
-
-            return if (response.isSuccessful && response.body != null) Gson().fromJson(
-                data,
-                javaClass
-            )
-            else null
-
-        }
-    }
-
-    inner class SafeRequest<T>(
-        from: String,
-        private val javaClass: Class<T>
-    ) : DataRequest(from), RequestExecutor<Result<T>> {
-
-        override fun withMethod(method: HttpMethod): SafeRequest<T> {
-            super.withMethod(method)
-            return this
-        }
-
-        override fun withClient(client: OkHttpClient): SafeRequest<T> {
-            super.withClient(client)
-            return this
-        }
-
-        override fun withHeaders(headers: Map<String, String>): SafeRequest<T> {
-            super.withHeaders(headers)
-            return this
-        }
-
-        override fun withBody(body: Map<String, Any>): SafeRequest<T> {
-            super.withBody(body)
-            return this
-        }
-
-        override suspend fun execute(): Result<T> {
-
-            return try {
-
-                val (data, response) = executeRequest()
-
-                when {
-                    !response.isSuccessful -> Result.failure(
-                        when (response.code) {
-                            401 -> NetworkError.StatusCode(
-                                response.code,
-                                "UnauthorizedUnauthorized"
-                            )
-
-                            404 -> NetworkError.StatusCode(response.code, "Not Found")
-                            500 -> NetworkError.StatusCode(response.code, "Internal Server Error")
-                            // Add more status code validations if needed
-                            else -> NetworkError.StatusCode(
-                                response.code,
-                                "Unknown Error: " + response.message
-                            )
-                        }
-                    )
-
-                    response.body == null -> Result.failure(
-                        NetworkError.APIError(
-                            error = "Error: Body expected but found null instead " + response.message
-                        )
-                    )
-
-                    else -> Result.success(
-                        Gson().fromJson(data, javaClass)
-                    )
-                }
-            } catch (e: Throwable) {
-
-                when (e) {
-                    is MalformedURLException,
-                    is IllegalArgumentException -> Result.failure(NetworkError.UrlConstructError(e.message))
-
-                    is ClassCastException,
-                    is JsonSyntaxException -> Result.failure(NetworkError.DecodingError(e.message))
-
-                    else -> Result.failure(NetworkError.APIError(e.message))
-                }
-            }
         }
     }
 }

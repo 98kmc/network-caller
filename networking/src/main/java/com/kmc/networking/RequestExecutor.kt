@@ -1,6 +1,11 @@
 package com.kmc.networking
 
-internal interface RequestExecutor<T> {
+import com.google.gson.JsonElement
+import okhttp3.Response
 
-    suspend fun execute(): T?
+internal interface RequestExecutor {
+
+    suspend fun RequestExecutor.executeRequest(request:  Networking.DataRequest): Pair<JsonElement?, Response> {
+        return request.getServiceResponse()
+    }
 }
