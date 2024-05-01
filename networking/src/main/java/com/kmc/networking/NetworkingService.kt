@@ -6,10 +6,10 @@ interface NetworkingService {
 }
 
 fun NetworkingService.request(
-    from: String
-) = provideNetworking().Request(from = from)
+    endpoint: String
+) = provideNetworking().Request(endpoint)
 
 fun NetworkingService.safeRequest(
-    from: String
-) = provideNetworking().SafeRequest(from = from)
+    endpoint: String
+) = provideNetworking().SafeRequest(endpoint)
 

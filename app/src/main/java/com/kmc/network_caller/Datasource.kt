@@ -21,14 +21,11 @@ class DataSource @Inject constructor(
 
     private val service = networkService(context)
 
-    suspend fun fetchPost(): PostList? {
-
-        return service.request<PostList?>(from = "posts/").execute()
-    }
+    suspend fun fetchPost(): PostList? = service.request(endpoint = "posts/").execute()
 
     suspend fun createPost(): Result<AnyDataType> {
 
-        val request = service.safeRequest<AnyDataType>(from = "posts/")
+        val request = service.safeRequest(endpoint = "posts/")
             .withMethod(HttpMethod.POST)
             .withBody(
                 mapOf(

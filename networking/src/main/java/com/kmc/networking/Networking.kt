@@ -1,4 +1,4 @@
-@file:Suppress("unused", "DEPRECATION")
+@file:Suppress("unused")
 
 package com.kmc.networking
 
@@ -28,6 +28,14 @@ class Networking @Inject internal constructor(
     @NetworkingRetrofit private val retrofit: Retrofit
 ) {
 
+    private var service: ApiService
+    private val currentBaseUrl
+        get() = retrofit.baseUrl()
+
+    init {
+        service = retrofit.create(ApiService::class.java)
+    }
+
     private interface ApiService {
 
         @GET
@@ -46,16 +54,8 @@ class Networking @Inject internal constructor(
         suspend fun delete(@Url url: String): Response<JsonElement>
     }
 
-    private var service: ApiService
-    private val currentBaseUrl get() = retrofit.baseUrl()
+    abstract inner class DataRequest(private val url: String) {
 
-    init {
-        service = retrofit.create(ApiService::class.java)
-    }
-
-    abstract inner class DataRequest(from: String) {
-
-        private val url: URL = buildUrl(str = from)
         private var method: HttpMethod = HttpMethod.GET
         private var body: RequestBody? = null
         private var client: OkHttpClient? = null
@@ -85,10 +85,8 @@ class Networking @Inject internal constructor(
 
             if (client != null || headers != null) {
 
-                service = buildService()
+                service = buildService(client, headers)
             }
-
-            val url = url.toString()
 
             val serverResponse = when (method) {
 
@@ -105,45 +103,9 @@ class Networking @Inject internal constructor(
 
             return Pair(serverResponse.body(), serverResponse.raw())
         }
-
-        private fun buildService(): ApiService {
-
-            val retrofitBuilder = retrofit.newBuilder()
-
-            client?.let { retrofitBuilder.client(it) }
-
-            headers?.let {
-
-                val newOkHttpClient = (client ?: retrofit.callFactory() as OkHttpClient)
-                    .newBuilder()
-                    .addInterceptor { chain ->
-                        val originalRequest = chain.request()
-                        val requestBuilder = originalRequest.newBuilder()
-
-                        it.forEach { (key, value) ->
-                            requestBuilder.addHeader(key, value)
-                        }
-
-                        chain.proceed(requestBuilder.build())
-                    }
-                    .build()
-
-                retrofitBuilder.client(newOkHttpClient)
-            }
-
-            return retrofitBuilder.build().create(ApiService::class.java)
-        }
-
-        private fun buildUrl(str: String) = try {
-            URL(str)
-        } catch (e: MalformedURLException) {
-            URL(currentBaseUrl.toString() + str)
-        }
     }
 
-    inner class Request(
-        from: String,
-    ) : DataRequest(from), RequestExecutor {
+    inner class Request(endpoint: String) : DataRequest(buildUrl(endpoint)), RequestExecutor {
 
         override fun withMethod(method: HttpMethod): Request {
             super.withMethod(method)
@@ -165,21 +127,17 @@ class Networking @Inject internal constructor(
             return this
         }
 
-
         suspend inline fun <reified T> execute(): T? {
 
             val (data, response) = executeRequest(this)
 
             return if (response.isSuccessful && response.body != null) Gson().fromJson(
-                data,
-                T::class.java
+                data, T::class.java
             ) else null
         }
     }
 
-    inner class SafeRequest(
-        from: String,
-    ) : DataRequest(from), RequestExecutor {
+    inner class SafeRequest(endpoint: String) : DataRequest(buildUrl(endpoint)), RequestExecutor {
 
         override fun withMethod(method: HttpMethod): SafeRequest {
             super.withMethod(method)
@@ -201,7 +159,7 @@ class Networking @Inject internal constructor(
             return this
         }
 
-        suspend inline fun <reified T>execute(): Result<T> {
+        suspend inline fun <reified T> execute(): Result<T> {
 
             return try {
 
@@ -211,16 +169,14 @@ class Networking @Inject internal constructor(
                     !response.isSuccessful -> Result.failure(
                         when (response.code) {
                             401 -> NetworkError.StatusCode(
-                                response.code,
-                                "UnauthorizedUnauthorized"
+                                response.code, "UnauthorizedUnauthorized"
                             )
 
                             404 -> NetworkError.StatusCode(response.code, "Not Found")
                             500 -> NetworkError.StatusCode(response.code, "Internal Server Error")
                             // Add more status code validations if needed
                             else -> NetworkError.StatusCode(
-                                response.code,
-                                "Unknown Error: " + response.message
+                                response.code, "Unknown Error: " + response.message
                             )
                         }
                     )
@@ -238,11 +194,15 @@ class Networking @Inject internal constructor(
             } catch (e: Throwable) {
 
                 when (e) {
-                    is MalformedURLException,
-                    is IllegalArgumentException -> Result.failure(NetworkError.UrlConstructError(e.message))
+                    is MalformedURLException, is IllegalArgumentException -> Result.failure(
+                        NetworkError.UrlConstructError(e.message)
+                    )
 
-                    is ClassCastException,
-                    is JsonSyntaxException -> Result.failure(NetworkError.DecodingError(e.message))
+                    is ClassCastException, is JsonSyntaxException -> Result.failure(
+                        NetworkError.DecodingError(
+                            e.message
+                        )
+                    )
 
                     else -> Result.failure(NetworkError.APIError(e.message))
                 }
@@ -250,7 +210,40 @@ class Networking @Inject internal constructor(
         }
     }
 
-    @Deprecated("Deprecated in v1.1.0")
+    private fun buildUrl(str: String) = try {
+        URL(str)
+    } catch (e: MalformedURLException) {
+        URL(currentBaseUrl.toString() + str)
+    }.toString()
+
+    private fun buildService(
+        client: OkHttpClient?, headers: Map<String, String>?
+    ): ApiService {
+
+        val retrofitBuilder = retrofit.newBuilder()
+
+        client?.let { retrofitBuilder.client(it) }
+
+        headers?.let {
+
+            val newOkHttpClient = (client ?: retrofit.callFactory() as OkHttpClient).newBuilder()
+                .addInterceptor { chain ->
+                    val originalRequest = chain.request()
+                    val requestBuilder = originalRequest.newBuilder()
+
+                    it.forEach { (key, value) ->
+                        requestBuilder.addHeader(key, value)
+                    }
+
+                    chain.proceed(requestBuilder.build())
+                }.build()
+
+            retrofitBuilder.client(newOkHttpClient)
+        }
+
+        return retrofitBuilder.build().create(ApiService::class.java)
+    }
+
     inner class DataTask internal constructor(
         val url: URL,
         val method: HttpMethod,
@@ -278,7 +271,6 @@ class Networking @Inject internal constructor(
         }
     }
 
-    @Deprecated("Deprecated in v1.1.0")
     inner class DataTaskBuilder(from: String) {
 
         private val url: URL = buildUrl(str = from)
@@ -335,19 +327,18 @@ class Networking @Inject internal constructor(
 
             headers?.let {
 
-                val newOkHttpClient = (client ?: retrofit.callFactory() as OkHttpClient)
-                    .newBuilder()
-                    .addInterceptor { chain ->
-                        val originalRequest = chain.request()
-                        val requestBuilder = originalRequest.newBuilder()
+                val newOkHttpClient =
+                    (client ?: retrofit.callFactory() as OkHttpClient).newBuilder()
+                        .addInterceptor { chain ->
+                            val originalRequest = chain.request()
+                            val requestBuilder = originalRequest.newBuilder()
 
-                        it.forEach { (key, value) ->
-                            requestBuilder.addHeader(key, value)
-                        }
+                            it.forEach { (key, value) ->
+                                requestBuilder.addHeader(key, value)
+                            }
 
-                        chain.proceed(requestBuilder.build())
-                    }
-                    .build()
+                            chain.proceed(requestBuilder.build())
+                        }.build()
 
                 retrofitBuilder.client(newOkHttpClient)
             }
