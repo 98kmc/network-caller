@@ -138,7 +138,7 @@ Implement the `NetworkCaller` interface, which gives you access to the `networki
 
         suspend fun createPost(): Result<AnyDataType> {
     
-            val request = service.safeRequest(endpoint = "posts/")
+            val request = service.safeRequest(endpoint = "https://jsonplaceholder.typicode.com/posts/")
                 .withMethod(HttpMethod.POST)
                 .withBody(
                     mapOf(
