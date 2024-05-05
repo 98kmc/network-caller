@@ -25,7 +25,7 @@ import java.net.URL
 import javax.inject.Inject
 
 class Networking @Inject internal constructor(
-    @NetworkingRetrofit private val retrofit: Retrofit
+    @NetworkingRetrofitInstance private val retrofit: Retrofit
 ) {
 
     private var service: ApiService
@@ -71,11 +71,29 @@ class Networking @Inject internal constructor(
             return this
         }
 
+        open fun withHeaders(vararg headers: Pair<String, String>): DataRequest {
+            this.headers = headers.toMap()
+            return this
+        }
+
+        open fun withBody(vararg body: Pair<String, Any>): DataRequest {
+            this.body = Gson().toJson(body).toRequestBody("application/json".toMediaTypeOrNull())
+            return this
+        }
+
+        @Deprecated(
+            message = "Deprecated in version 1.0.2",
+            replaceWith = ReplaceWith("withHeaders(vararg headers: Pair<String, String>)")
+        )
         open fun withHeaders(headers: Map<String, String>): DataRequest {
             this.headers = headers
             return this
         }
 
+        @Deprecated(
+            message = "Deprecated in version 1.0.2",
+            replaceWith = ReplaceWith("withBody(vararg body: Pair<String, String>)")
+        )
         open fun withBody(body: Map<String, Any>): DataRequest {
             this.body = Gson().toJson(body).toRequestBody("application/json".toMediaTypeOrNull())
             return this
@@ -117,11 +135,29 @@ class Networking @Inject internal constructor(
             return this
         }
 
+        override fun withHeaders(vararg headers: Pair<String, String>): Request {
+            super.withHeaders(*headers)
+            return this
+        }
+
+        override fun withBody(vararg body: Pair<String, Any>): Request {
+            super.withBody(*body)
+            return this
+        }
+
+        @Deprecated(
+            "Deprecated in version 1.0.2",
+            replaceWith = ReplaceWith("withHeaders(vararg headers: Pair<String, String>)")
+        )
         override fun withHeaders(headers: Map<String, String>): Request {
             super.withHeaders(headers)
             return this
         }
 
+        @Deprecated(
+            "Deprecated in version 1.0.2",
+            replaceWith = ReplaceWith("withBody(vararg body: Pair<String, String>)")
+        )
         override fun withBody(body: Map<String, Any>): Request {
             super.withBody(body)
             return this
@@ -149,11 +185,29 @@ class Networking @Inject internal constructor(
             return this
         }
 
+        override fun withHeaders(vararg headers: Pair<String, String>): SafeRequest {
+            super.withHeaders(*headers)
+            return this
+        }
+
+        override fun withBody(vararg body: Pair<String, Any>): SafeRequest {
+            super.withBody(*body)
+            return this
+        }
+
+        @Deprecated(
+            "Deprecated in version 1.0.2",
+            replaceWith = ReplaceWith("withHeaders(vararg headers: Pair<String, String>)")
+        )
         override fun withHeaders(headers: Map<String, String>): SafeRequest {
             super.withHeaders(headers)
             return this
         }
 
+        @Deprecated(
+            "Deprecated in version 1.0.2",
+            replaceWith = ReplaceWith("withBody(vararg body: Pair<String, String>)")
+        )
         override fun withBody(body: Map<String, Any>): SafeRequest {
             super.withBody(body)
             return this

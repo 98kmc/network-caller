@@ -3,7 +3,7 @@ package com.kmc.networking.di
 import com.kmc.networking.Networking
 import com.kmc.networking.NetworkingBaseUrl
 import com.kmc.networking.NetworkingOkHttp
-import com.kmc.networking.NetworkingRetrofit
+import com.kmc.networking.NetworkingRetrofitInstance
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -18,7 +18,7 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 internal object NetworkingHiltModule {
 
-    @NetworkingRetrofit
+    @NetworkingRetrofitInstance
     @Singleton
     @Provides
     fun provideRetrofit(
@@ -32,7 +32,7 @@ internal object NetworkingHiltModule {
 
     @Singleton
     @Provides
-    fun provideNetworking(@NetworkingRetrofit retrofit: Retrofit): Networking {
+    fun provideNetworking(@NetworkingRetrofitInstance retrofit: Retrofit): Networking {
 
         return Networking(retrofit)
     }
