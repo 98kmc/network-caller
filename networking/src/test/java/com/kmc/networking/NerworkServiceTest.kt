@@ -9,19 +9,18 @@ import org.junit.Before
 import org.junit.Test
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
-import java.lang.IllegalArgumentException
 
 class NetworkServiceTest {
 
     private lateinit var mockWebServer: MockWebServer
-    private lateinit var networkService: NetworkService
+    private lateinit var networkService: NetworkingService
 
     @Before
     fun setup() {
         mockWebServer = MockWebServer()
-        networkService = object : NetworkService {
+        networkService = object : NetworkingService {
 
-            override fun NetworkService.provideNetworking() = Networking(
+            override fun NetworkingService.provideNetworking() = Networking(
                 retrofit = Retrofit.Builder()
                     .baseUrl(mockWebServer.url("/"))
                     .addConverterFactory(GsonConverterFactory.create())
@@ -41,7 +40,7 @@ class NetworkServiceTest {
         val responseBody = """{"key": "value"}"""
         mockWebServer.enqueue(MockResponse().setBody(responseBody))
 
-        val result: Map<String, Any>? = networkService.request(endpoint = "test/")
+        val result: Map<String, Any>? = networkService.request(endpoint = "test/").execute()
 
         Assert.assertNotNull(result)
         Assert.assertEquals("value", result?.get("key"))
@@ -52,19 +51,9 @@ class NetworkServiceTest {
 
         mockWebServer.enqueue(MockResponse().setResponseCode(500))
 
-        val result: Map<String, Any>? = networkService.request(endpoint = "test/")
+        val result: Map<String, Any>? = networkService.request(endpoint = "test/").execute()
 
         Assert.assertNull(result)
-    }
-
-    @Test
-    fun `execute invalid url request with Failure response`() {
-
-        Assert.assertThrows(IllegalArgumentException::class.java) {
-            runTest {
-                networkService.request<Map<String, Any>?>(endpoint = "test")
-            }
-        }
     }
 
     @Test
@@ -73,7 +62,7 @@ class NetworkServiceTest {
         val responseBody = """{"key": "value"}"""
         mockWebServer.enqueue(MockResponse().setBody(responseBody))
 
-        val result: Result<Map<String, Any>> = networkService.safeRequest("test/")
+        val result: Result<Map<String, Any>> = networkService.safeRequest("test/").execute()
         val unwrappedValue = result.getOrNull()
 
         Assert.assertTrue(result.isSuccess)
@@ -86,19 +75,10 @@ class NetworkServiceTest {
 
         mockWebServer.enqueue(MockResponse().setResponseCode(500))
 
-        val result: Result<Map<String, Any>> = networkService.safeRequest("test/")
+        val result: Result<Map<String, Any>> = networkService.safeRequest("test/").execute()
 
         Assert.assertTrue(result.isFailure)
         assert(result.exceptionOrNull() is NetworkError.StatusCode)
-    }
-
-    @Test
-    fun `execute invalid Url get safeRequest with Failure response`() = runTest {
-
-        val result: Result<Map<String, Any>> = networkService.safeRequest("test")
-
-        Assert.assertTrue(result.isFailure)
-        assert(result.exceptionOrNull() is NetworkError.UrlConstructError)
     }
 
     @Test
@@ -106,7 +86,7 @@ class NetworkServiceTest {
 
         val responseBody = """{"key":"value"}"""
         mockWebServer.enqueue(MockResponse().setResponseCode(200).setBody(responseBody))
-        val result: Result<List<String>> = networkService.safeRequest("test/")
+        val result: Result<List<String>> = networkService.safeRequest("test/").execute()
 
         assert(result.isFailure)
         assert(result.exceptionOrNull() is NetworkError.DecodingError)

@@ -1,5 +1,7 @@
 package com.kmc.networking
 
+import java.net.URL
+
 interface NetworkingService {
 
     fun NetworkingService.provideNetworking(): Networking
@@ -7,9 +9,16 @@ interface NetworkingService {
 
 fun NetworkingService.request(
     endpoint: String
-) = provideNetworking().Request(endpoint)
+) = Request(endpoint, provideNetworking())
 
 fun NetworkingService.safeRequest(
     endpoint: String
-) = provideNetworking().SafeRequest(endpoint)
+) = SafeRequest(endpoint, provideNetworking())
 
+fun NetworkingService.request(
+    url: URL
+) = Request(url, provideNetworking())
+
+fun NetworkingService.safeRequest(
+    url: URL
+) = SafeRequest(url , provideNetworking())

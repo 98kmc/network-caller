@@ -14,16 +14,7 @@ interface NetworkCaller {
 
         override fun NetworkingService.provideNetworking() =
             EntryPoints.get(context, NetworkingEntryPoint::class.java).networking()
-    }
 
-    @Deprecated(
-        "Deprecated in v1.1.0",
-        ReplaceWith(expression = "networkService(context: Context)")
-    )
-    fun NetworkCaller.networkService(context: Context) = object : NetworkService {
-
-        override fun NetworkService.provideNetworking() =
-            EntryPoints.get(context, NetworkingEntryPoint::class.java).networking()
     }
 }
 

@@ -19,25 +19,21 @@ class DataSource @Inject constructor(
     @ApplicationContext private val context: Context
 ) : NetworkCaller {
 
-    private val service = networkingService(context)
+    private val network = networkingService(context)
 
-    suspend fun fetchPost(): PostList? = service.request(endpoint = "posts/").execute()
+    suspend fun fetchPost(): PostList? = network.request(endpoint = "posts/").execute()
 
     suspend fun createPost(): Result<AnyDataType> {
 
-        val request = service.safeRequest(endpoint = "posts/")
+        val request = network.safeRequest(endpoint = "https://jsonplaceholder.typicode.com/posts/")
             .withMethod(HttpMethod.POST)
             .withBody(
-                mapOf(
-                    "title" to "foo",
-                    "body" to "bar",
-                    "userId" to "1"
-                )
+                "title" to "foo",
+                "body" to "bar",
+                "userId" to "1"
             )
             .withHeaders(
-                mapOf(
-                    "Content-type" to "application/json; charset=UTF-8"
-                )
+                "Content-type" to "application/json; charset=UTF-8"
             )
 
         return request.execute()
