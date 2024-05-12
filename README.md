@@ -127,7 +127,7 @@ then follow these steps to make network requests with ease:
    ```
    
 1. **Implement NetworkCaller Interface:**
-Implement the `NetworkCaller` interface, which gives you access to the `networkingService(context:)` function. This function requires a context and provides a `NetworkService` object capable of making queries to any URL and returning any data type.
+Implement the `NetworkCaller` interface, which gives you access to the `networkingService(context:)` function. This function requires a context and provides a `NetworkingService` object capable of making queries to any URL and returning any data type.
 
 ```kotlin
 
@@ -160,7 +160,7 @@ Implement the `NetworkCaller` interface, which gives you access to the `networki
         }
     }
    ```
-Note: On this functions there is no difference between using the full URL or just the endpoint. If only the endpoint is provided, the `@NetworkingBaseUrl` is used to complete the URL.
+Note: On this functions there is no difference between using the full URL or just the endpoint. If only the endpoint is provided, the `@NetworkingBaseUrl` is used to complete the URL, you can make resquests to any url providing an URL type and using the request(url:) or safeRequest(url:) function instead.
 
 Now, you can use this DataSource class to fetch and create data:
 
@@ -174,7 +174,8 @@ Now, you can use this DataSource class to fetch and create data:
      override fun onCreate(savedInstanceState: Bundle?) {
          super.onCreate(savedInstanceState)
          setContent {
-             Text(text = "Hello!")
+
+             Text(text = "Hello, I'm doing some networking stuff!")
 
              LaunchedEffect(Unit) {
 
