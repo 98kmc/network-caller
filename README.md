@@ -137,15 +137,15 @@ Implement the `NetworkCaller` interface, which gives you access to the `networki
         @ApplicationContext private val context: Context
     ) : NetworkCaller {
     
-        private val network = networkingService(context)
+        private val service = networkingService(context)
     
-        suspend fun fetchPost(): PostList? = network.request(endpoint = "posts/").execute()
+        suspend fun fetchPost(): PostList? = service.request(endpoint = "posts/").execute()
     
         suspend fun createPost(): Result<Data> {
     
             val url = URL("https://jsonplaceholder.typicode.com/posts/")
     
-            val request = network.safeRequest(url = url)
+            val request = service.safeRequest(url = url)
                 .withMethod(HttpMethod.POST)
                 .withBody(
                     "title" to "foo",
