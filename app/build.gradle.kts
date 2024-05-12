@@ -83,5 +83,6 @@ dependencies {
     implementation("com.squareup.okhttp3:logging-interceptor:$okHttpVersion")
 
     // Network Caller
-    implementation("com.github.98kmc:network-caller:1.0.1")
+    implementation("com.github.98kmc:network-caller:1.1.0")
+    // implementation(project(":networking"))
 }

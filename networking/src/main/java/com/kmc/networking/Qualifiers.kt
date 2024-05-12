@@ -8,7 +8,7 @@ annotation class NetworkingBaseUrl
 
 @Qualifier
 @Retention(AnnotationRetention.BINARY)
-annotation class NetworkingRetrofit
+annotation class NetworkingRetrofitInstance
 
 @Qualifier
 @Retention(AnnotationRetention.BINARY)

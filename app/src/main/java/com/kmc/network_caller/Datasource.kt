@@ -6,38 +6,37 @@ import com.kmc.networking.NetworkCaller
 import com.kmc.networking.request
 import com.kmc.networking.safeRequest
 import dagger.hilt.android.qualifiers.ApplicationContext
+import java.net.URL
 import javax.inject.Inject
 
-data class AnyDataType(
+data class Data(
     val id: Int?,
     val title: String?
 )
 
-private typealias PostList = List<AnyDataType>
+private typealias PostList = List<Data>
 
 class DataSource @Inject constructor(
     @ApplicationContext private val context: Context
 ) : NetworkCaller {
 
-    private val service = networkingService(context)
+    private val network = networkingService(context)
 
-    suspend fun fetchPost(): PostList? = service.request(endpoint = "posts/").execute()
+    suspend fun fetchPost(): PostList? = network.request(endpoint = "posts/").execute()
 
-    suspend fun createPost(): Result<AnyDataType> {
+    suspend fun createPost(): Result<Data> {
 
-        val request = service.safeRequest(endpoint = "posts/")
+        val url = URL("https://jsonplaceholder.typicode.com/posts/")
+
+        val request = network.safeRequest(url = url)
             .withMethod(HttpMethod.POST)
             .withBody(
-                mapOf(
-                    "title" to "foo",
-                    "body" to "bar",
-                    "userId" to "1"
-                )
+                "title" to "foo",
+                "body" to "bar",
+                "userId" to "1"
             )
             .withHeaders(
-                mapOf(
-                    "Content-type" to "application/json; charset=UTF-8"
-                )
+                "Content-type" to "application/json; charset=UTF-8"
             )
 
         return request.execute()
