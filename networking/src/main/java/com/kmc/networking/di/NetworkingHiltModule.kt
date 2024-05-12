@@ -1,6 +1,5 @@
 package com.kmc.networking.di
 
-import com.kmc.networking.Networking
 import com.kmc.networking.NetworkingBaseUrl
 import com.kmc.networking.NetworkingOkHttp
 import com.kmc.networking.NetworkingRetrofitInstance
@@ -29,11 +28,4 @@ internal object NetworkingHiltModule {
         .addConverterFactory(GsonConverterFactory.create())
         .client(client)
         .build()
-
-    @Singleton
-    @Provides
-    fun provideNetworking(@NetworkingRetrofitInstance retrofit: Retrofit): Networking {
-
-        return Networking(retrofit)
-    }
 }

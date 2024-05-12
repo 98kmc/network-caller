@@ -14,20 +14,14 @@ import retrofit2.http.PATCH
 import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Url
-import java.net.MalformedURLException
-import java.net.URL
 import javax.inject.Inject
 
 class Networking @Inject internal constructor(
     @NetworkingRetrofitInstance private val retrofit: Retrofit
 ) {
 
-    internal var service: ApiService
+    internal val service: ApiService = retrofit.create(ApiService::class.java)
     internal val baseUrl get() = retrofit.baseUrl().toString()
-
-    init {
-        service = retrofit.create(ApiService::class.java)
-    }
 
     internal interface ApiService {
 

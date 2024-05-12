@@ -13,7 +13,8 @@ import java.net.MalformedURLException
 import java.net.URL
 
 abstract class DataRequest(
-    private val url: URL, private val networking: Networking
+    private val url: URL,
+    private val networking: Networking
 ) {
 
     private val urlPath get() = url.toString()
