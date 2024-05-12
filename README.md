@@ -97,12 +97,12 @@ object NetworkModule {
     @NetworkingBaseUrl
     @Singleton
     @Provides
-    fun provideBaseUrl(): URL = URL("/")  // Your Url here!
+    fun provideBaseUrl(): URL = URL("/") // <-- Your Url here!
 
     @NetworkingOkHttp
     @Singleton
     @Provides
-    fun provideOkHttpClient(): OkHttpClient {
+    fun provideOkHttpClient(): OkHttpClient {  // <-- Add any configuration or interceptors here!
         return OkHttpClient.Builder()
             .callTimeout(30, TimeUnit.SECONDS)
             .connectTimeout(30, TimeUnit.SECONDS)
@@ -118,7 +118,9 @@ then follow these steps to make network requests with ease:
    Create a data class representing the data type you want to retrieve:
 
    ```kotlin
-   data class AnyDataType(
+   // create any custom type!
+   
+   data class Data(
        val id: Int?,
        val title: String?
    )
@@ -128,34 +130,35 @@ then follow these steps to make network requests with ease:
 Implement the `NetworkCaller` interface, which gives you access to the `networkingService(context:)` function. This function requires a context and provides a `NetworkService` object capable of making queries to any URL and returning any data type.
 
 ```kotlin
-   class DataSource @Inject constructor(
-    @ApplicationContext private val context: Context
-   ) : NetworkCaller {
 
-        private val service = networkingService(context)
+    private typealias PostList = List<Data>
 
-        suspend fun fetchPost(): PostList? = service.request(endpoint = "posts/").execute()
-
-        suspend fun createPost(): Result<AnyDataType> {
+    class DataSource @Inject constructor(
+        @ApplicationContext private val context: Context
+    ) : NetworkCaller {
     
-            val request = service.safeRequest(endpoint = "https://jsonplaceholder.typicode.com/posts/")
+        private val network = networkingService(context)
+    
+        suspend fun fetchPost(): PostList? = network.request(endpoint = "posts/").execute()
+    
+        suspend fun createPost(): Result<Data> {
+    
+            val url = URL("https://jsonplaceholder.typicode.com/posts/")
+    
+            val request = network.safeRequest(url = url)
                 .withMethod(HttpMethod.POST)
                 .withBody(
-                    mapOf(
-                        "title" to "foo",
-                        "body" to "bar",
-                        "userId" to "1"
-                    )
+                    "title" to "foo",
+                    "body" to "bar",
+                    "userId" to "1"
                 )
                 .withHeaders(
-                    mapOf(
-                        "Content-type" to "application/json; charset=UTF-8"
-                    )
+                    "Content-type" to "application/json; charset=UTF-8"
                 )
-
+    
             return request.execute()
         }
-  }
+    }
    ```
 Note: On this functions there is no difference between using the full URL or just the endpoint. If only the endpoint is provided, the `@NetworkingBaseUrl` is used to complete the URL.
 
